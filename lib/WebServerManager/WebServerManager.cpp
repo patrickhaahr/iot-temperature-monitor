@@ -22,7 +22,7 @@ void setupWebServer() {
   Serial.println("Web server started.");
 }
 
-WebServerManager::WebServerManager(uint16_t port) : port(port) {
+WebServerManager::WebServerManager(uint16_t port) : port(port), isInAPMode(false) {
     server = new AsyncWebServer(port);
     ws = new AsyncWebSocket("/ws");
 }
@@ -45,13 +45,29 @@ bool WebServerManager::begin() {
 }
 
 void WebServerManager::setupRoutes() {
-    // Serve static files
-    server->serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+    // Serve static files with AP mode check
+    server->on("/", HTTP_GET, [this](AsyncWebServerRequest *request){
+        if (isInAPMode) {
+            // In AP mode, serve the configuration page
+            request->send(SPIFFS, "/config.html");
+        } else {
+            // In connected mode, serve the temperature monitor
+            request->send(SPIFFS, "/index.html");
+        }
+    });
+
+    // Serve other static files
+    server->serveStatic("/", SPIFFS, "/");
 
     // Handle WiFi configuration in AP mode
     server->on("/api/wifi/configure", HTTP_POST, [](AsyncWebServerRequest* request) {
         request->send(400); // Bad request by default
     }, NULL, [this](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+        if (!isInAPMode) {
+            request->send(403, "application/json", "{\"status\":\"error\",\"message\":\"Not in AP mode\"}");
+            return;
+        }
+
         JsonDocument doc;
         DeserializationError error = deserializeJson(doc, data);
         
@@ -67,6 +83,15 @@ void WebServerManager::setupRoutes() {
         } else {
             request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Invalid request\"}");
         }
+    });
+
+    // Add an endpoint to check the current mode
+    server->on("/api/mode", HTTP_GET, [this](AsyncWebServerRequest *request){
+        JsonDocument doc;
+        doc["mode"] = isInAPMode ? "ap" : "connected";
+        String response;
+        serializeJson(doc, response);
+        request->send(200, "application/json", response);
     });
 }
 
@@ -110,4 +135,8 @@ void WebServerManager::onWebSocketEvent(AsyncWebSocket* server, AsyncWebSocketCl
         case WS_EVT_ERROR:
             break;
     }
+}
+
+void WebServerManager::setAPMode(bool isAP) {
+    isInAPMode = isAP;
 }

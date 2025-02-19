@@ -42,10 +42,18 @@ public:
      */
     void broadcastTemperature(float temperature);
 
+    /**
+     * @brief Set whether the device is in AP mode
+     * 
+     * @param isAP true if in AP mode, false if connected to WiFi
+     */
+    void setAPMode(bool isAP);
+
 private:
     AsyncWebServer* server;
     AsyncWebSocket* ws;
     uint16_t port;
+    bool isInAPMode;
     std::function<void(const char*, const char*)> wifiCredentialsCallback;
 
     void setupRoutes();

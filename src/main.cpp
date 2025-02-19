@@ -88,6 +88,9 @@ void setup() {
     webServerManager->setWiFiCredentialsCallback(handleWiFiCredentials);
     resetManager->setResetCallback(handleReset);
 
+    // Set AP mode state based on WiFi connection
+    webServerManager->setAPMode(!wifiManager->isConnected());
+
     // Print network information
     if (wifiManager->isConnected()) {
         Serial.print("Connected to WiFi. IP: ");
