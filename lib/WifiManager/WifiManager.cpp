@@ -36,15 +36,28 @@ bool WifiManager::connect() {
     int attempts = 30;
     while (WiFi.status() != WL_CONNECTED && attempts > 0) {
         delay(1000);
+        Serial.print(".");
         attempts--;
     }
+    Serial.println();
 
-    return WiFi.status() == WL_CONNECTED;
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.printf("\nConnected to WiFi network: %s\n", ssid.c_str());
+        Serial.printf("Temperature monitor available at: http://%s\n\n", WiFi.localIP().toString().c_str());
+        return true;
+    }
+
+    return false;
 }
 
 void WifiManager::startAPMode() {
     WiFi.mode(WIFI_AP);
     WiFi.softAP(apSSID, apPassword);
+    
+    Serial.println("\nAP Mode Started");
+    Serial.printf("Network Name: %s\n", apSSID);
+    Serial.printf("Password: %s\n", apPassword);
+    Serial.printf("Configuration page available at: http://%s\n\n", WiFi.softAPIP().toString().c_str());
 }
 
 bool WifiManager::saveCredentials(const char* ssid, const char* password) {
