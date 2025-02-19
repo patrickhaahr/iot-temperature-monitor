@@ -11,7 +11,31 @@ WifiManager::WifiManager(const char* apSSID, const char* apPassword)
 
 bool WifiManager::begin() {
     if (!SPIFFS.begin(true)) {
+        Serial.println("Failed to mount SPIFFS");
         return false;
+    }
+    
+    // Debug: List all files in SPIFFS
+    Serial.println("\nListing files in SPIFFS:");
+    File root = SPIFFS.open("/");
+    File file = root.openNextFile();
+    while(file) {
+        Serial.print("- ");
+        Serial.println(file.name());
+        file = root.openNextFile();
+    }
+    
+    // Debug: Print wifi.json contents if it exists
+    if (SPIFFS.exists(CONFIG_FILE)) {
+        Serial.println("\nwifi.json contents:");
+        File wifiConfig = SPIFFS.open(CONFIG_FILE, "r");
+        while(wifiConfig.available()) {
+            Serial.write(wifiConfig.read());
+        }
+        wifiConfig.close();
+        Serial.println("\n");
+    } else {
+        Serial.println("\nNo wifi.json file found");
     }
     
     String ssid, password;

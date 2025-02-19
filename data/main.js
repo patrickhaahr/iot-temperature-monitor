@@ -3,6 +3,95 @@ let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
 const reconnectDelay = 5000;
 
+// Temperature history management
+const maxDataPoints = 50;  // Maximum number of points to show on the graph
+let temperatureHistory = [];
+
+// Initialize the chart
+const ctx = document.getElementById('tempChart').getContext('2d');
+const tempChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'Temperature °C',
+            data: [],
+            borderColor: 'rgb(59, 130, 246)',
+            tension: 0.1,
+            fill: false
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: false,
+                title: {
+                    display: true,
+                    text: 'Temperature (°C)'
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Time'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+function updateStatistics() {
+    if (temperatureHistory.length === 0) return;
+
+    const temperatures = temperatureHistory.map(item => item.temp);
+    const minTemp = Math.min(...temperatures);
+    const maxTemp = Math.max(...temperatures);
+    const avgTemp = temperatures.reduce((a, b) => a + b) / temperatures.length;
+
+    document.getElementById('min-temp').textContent = minTemp.toFixed(1);
+    document.getElementById('max-temp').textContent = maxTemp.toFixed(1);
+    document.getElementById('avg-temp').textContent = avgTemp.toFixed(1);
+    document.getElementById('sample-count').textContent = temperatures.length;
+}
+
+function updateChart() {
+    const labels = temperatureHistory.map(item => item.time);
+    const data = temperatureHistory.map(item => item.temp);
+
+    tempChart.data.labels = labels;
+    tempChart.data.datasets[0].data = data;
+    tempChart.update();
+}
+
+function addTemperatureReading(temperature) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString();
+    
+    temperatureHistory.push({
+        time: timeStr,
+        temp: temperature
+    });
+
+    // Keep only the last maxDataPoints readings
+    if (temperatureHistory.length > maxDataPoints) {
+        temperatureHistory.shift();
+    }
+
+    // Update the display
+    document.getElementById('temperature').textContent = temperature.toFixed(1);
+    document.getElementById('last-update').textContent = `Last update: ${timeStr}`;
+    
+    updateStatistics();
+    updateChart();
+}
+
 function initWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
@@ -35,8 +124,7 @@ function initWebSocket() {
         try {
             const data = JSON.parse(event.data);
             if (data.type === 'temperature') {
-                document.getElementById('temperature').textContent = 
-                    data.value.toFixed(1);
+                addTemperatureReading(data.value);
             }
         } catch (e) {
             console.error('Error parsing WebSocket message:', e);

@@ -5,21 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IoT Temperature Monitor</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8">
-        <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
             <div class="p-6">
                 <h1 class="text-2xl font-bold text-gray-800 mb-4">Temperature Monitor</h1>
                 
-                <div id="temperature-display">
-                    <div class="text-center py-8">
-                        <div class="text-6xl font-bold text-blue-600 mb-2">
-                            <span id="temperature">--.-</span>°C
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Current Temperature Display -->
+                    <div id="temperature-display" class="bg-blue-50 rounded-lg p-6">
+                        <div class="text-center">
+                            <div class="text-6xl font-bold text-blue-600 mb-2">
+                                <span id="temperature">--.-</span>°C
+                            </div>
+                            <div class="text-sm text-gray-500" id="connection-status">
+                                Connecting...
+                            </div>
+                            <div class="text-sm text-gray-500 mt-2" id="last-update">
+                                Last update: --:--:--
+                            </div>
                         </div>
-                        <div class="text-sm text-gray-500" id="connection-status">
-                            Connecting...
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h2 class="text-lg font-semibold text-gray-700 mb-4">Statistics</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-sm text-gray-500">Minimum</div>
+                                <div class="text-xl font-bold text-gray-800"><span id="min-temp">--.-</span>°C</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">Maximum</div>
+                                <div class="text-xl font-bold text-gray-800"><span id="max-temp">--.-</span>°C</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">Average</div>
+                                <div class="text-xl font-bold text-gray-800"><span id="avg-temp">--.-</span>°C</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">Samples</div>
+                                <div class="text-xl font-bold text-gray-800"><span id="sample-count">0</span></div>
+                            </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Temperature Graph -->
+                <div class="mt-6 bg-white rounded-lg p-4 border">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-4">Temperature History</h2>
+                    <div class="h-64">
+                        <canvas id="tempChart"></canvas>
                     </div>
                 </div>
             </div>
