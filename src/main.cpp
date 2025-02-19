@@ -6,7 +6,7 @@
 
 // Pin Definitions
 #define TEMPERATURE_SENSOR 19    // DS18B20 data pin
-#define RESET_BUTTON 4           // Reset button pin
+#define RESET_BUTTON      13    // Changed to GPIO13 which is less likely to have conflicts
 
 // Global objects
 SensorManager* sensorManager;
