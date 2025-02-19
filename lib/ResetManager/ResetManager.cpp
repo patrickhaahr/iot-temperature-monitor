@@ -1,7 +1,8 @@
 #include "ResetManager.h"
 #include <Arduino.h>
 
-#define RED_LED 5  // Define the RED_LED pin
+#define RED_LED 5    // Red LED pin
+#define BLUE_LED 18  // Blue LED pin
 
 ResetManager::ResetManager(uint8_t buttonPin, unsigned long holdTime)
     : pin(buttonPin), holdTime(holdTime), buttonPressed(false), pressStartTime(0) {
@@ -12,15 +13,17 @@ ResetManager::ResetManager(uint8_t buttonPin, unsigned long holdTime)
 bool ResetManager::begin() {
     pinMode(RED_LED, OUTPUT);
     digitalWrite(RED_LED, LOW);
-    // Ensure that the button pin is configured correctly in your main code.
+    pinMode(BLUE_LED, OUTPUT);
+    digitalWrite(BLUE_LED, LOW);
+    // Ensure that the button pin is configured appropriately in your main code.
     return true;
 }
 
 void ResetManager::check() {
     button->loop(); // Update the button state
 
-    // Adjust the following line based on your wiring:
-    // If your button wiring gives HIGH when pressed, use this:
+    // Adjust this condition based on your wiring.
+    // If your wiring gives HIGH when pressed, use the following:
     bool isPressed = (button->getState() == HIGH);
     // If your wiring gives LOW when pressed, change to:
     // bool isPressed = (button->getState() == LOW);
@@ -45,6 +48,15 @@ void ResetManager::check() {
             buttonPressed = false;
             digitalWrite(RED_LED, LOW);
             Serial.println("[RESET] 10-second hold completed - initiating reset");
+
+            // Blink blue LED rapidly for 1 second (50ms on, 50ms off for 10 cycles)
+            for (int i = 0; i < 10; i++) {
+                digitalWrite(BLUE_LED, HIGH);
+                delay(50);
+                digitalWrite(BLUE_LED, LOW);
+                delay(50);
+            }
+
             if (resetCallback) {
                 resetCallback();
             }
