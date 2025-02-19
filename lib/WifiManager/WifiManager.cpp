@@ -25,22 +25,22 @@ bool WifiManager::begin() {
         file = root.openNextFile();
     }
     
-    // Debug: Print wifi.json contents if it exists
+    // Check for existing wifi configuration
     if (SPIFFS.exists(CONFIG_FILE)) {
-        Serial.println("\nwifi.json contents:");
-        File wifiConfig = SPIFFS.open(CONFIG_FILE, "r");
-        while(wifiConfig.available()) {
-            Serial.write(wifiConfig.read());
+        Serial.println("\nFound existing wifi configuration. Attempting to connect...");
+        String ssid, password;
+        if (loadCredentials(ssid, password)) {
+            if (connect()) {
+                Serial.println("Successfully connected using saved credentials!");
+                return true;
+            } else {
+                Serial.println("Failed to connect. Starting AP mode...");
+            }
+        } else {
+            Serial.println("Error loading credentials. Starting AP mode...");
         }
-        wifiConfig.close();
-        Serial.println("\n");
     } else {
-        Serial.println("\nNo wifi.json file found");
-    }
-    
-    String ssid, password;
-    if (loadCredentials(ssid, password)) {
-        return connect();
+        Serial.println("\nNo wifi configuration found. Starting AP mode...");
     }
     
     startAPMode();

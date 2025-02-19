@@ -3,6 +3,12 @@
 #include "WifiManager.h"
 #include "WebServerManager.h"
 #include "ResetManager.h"
+#include <time.h>
+
+// NTP Server settings
+const char* ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = 3600;      // GMT offset (in seconds)
+const int daylightOffset_sec = 3600;  // Daylight offset (in seconds)
 
 // Pin Definitions
 #define TEMPERATURE_SENSOR 19    // DS18B20 data pin
@@ -95,6 +101,19 @@ void setup() {
     if (wifiManager->isConnected()) {
         Serial.print("Connected to WiFi. IP: ");
         Serial.println(WiFi.localIP());
+        
+        // Configure NTP
+        configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+        
+        // Wait for time to be set
+        time_t now = time(nullptr);
+        while (now < 24 * 3600) {
+            Serial.println("Waiting for NTP time sync...");
+            delay(500);
+            now = time(nullptr);
+        }
+        
+        Serial.println("Time synchronized with NTP server");
     } else {
         Serial.print("AP Mode. IP: ");
         Serial.println(WiFi.softAPIP());
@@ -102,25 +121,31 @@ void setup() {
 }
 
 void loop() {
-    // Check reset button
     resetManager->check();
 
-    // Update temperature reading periodically
     if (millis() - lastTempUpdate >= TEMP_UPDATE_INTERVAL) {
         lastTempUpdate = millis();
         
         if (sensorManager->isSensorWorking()) {
             float temperature = sensorManager->getTemperature();
-            webServerManager->broadcastTemperature(temperature);
             
-            Serial.print("Temperature: ");
-            Serial.print(temperature);
-            Serial.println("°C");
+            // Get current timestamp
+            time_t now;
+            time(&now);
+            struct tm timeinfo;
+            localtime_r(&now, &timeinfo);
+            char timeStr[20];
+            strftime(timeStr, sizeof(timeStr), "%H:%M:%S", &timeinfo);
+            
+            // Log temperature with timestamp
+            Serial.printf("[%s] Temperature: %.1f°C\n", timeStr, temperature);
+            
+            // Broadcast to WebSocket clients
+            webServerManager->broadcastTemperature(temperature);
         } else {
             Serial.println("Error reading temperature sensor!");
         }
     }
 
-    // Small delay to prevent watchdog issues
     delay(10);
 }

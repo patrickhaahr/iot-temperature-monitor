@@ -25,19 +25,33 @@ bool SensorManager::begin() {
 
 float SensorManager::getTemperature() {
     if (!isInitialized) {
+        Serial.println("Sensor not initialized!");
         return DEVICE_DISCONNECTED_C;
     }
     
     sensors->requestTemperatures();
-    return sensors->getTempCByIndex(0);
+    float temp = sensors->getTempCByIndex(0);
+    
+    if (temp == DEVICE_DISCONNECTED_C) {
+        Serial.println("Error: Sensor disconnected!");
+    }
+    
+    return temp;
 }
 
 bool SensorManager::isSensorWorking() {
     if (!isInitialized) {
+        Serial.println("Sensor not initialized!");
         return false;
     }
     
     sensors->requestTemperatures();
     float temp = sensors->getTempCByIndex(0);
-    return (temp != DEVICE_DISCONNECTED_C);
+    bool working = (temp != DEVICE_DISCONNECTED_C);
+    
+    if (!working) {
+        Serial.println("Error: Sensor not working!");
+    }
+    
+    return working;
 }

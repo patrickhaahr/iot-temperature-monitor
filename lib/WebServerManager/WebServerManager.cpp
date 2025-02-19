@@ -101,12 +101,20 @@ void WebServerManager::setWiFiCredentialsCallback(std::function<void(const char*
 
 void WebServerManager::broadcastTemperature(float temperature) {
     if (ws->count() > 0) {
-        JsonDocument doc;
-        doc["type"] = "temperature";
-        doc["value"] = temperature;
+        time_t now;
+        time(&now);  // Get current timestamp
         
-        String jsonString;
-        serializeJson(doc, jsonString);
+        // JSON with temperature and timestamp
+        String jsonString = "{\"temperature\":";
+        jsonString += String(temperature, 1);  // 1 decimal place
+        jsonString += ",\"timestamp\":";
+        jsonString += String(now);
+        jsonString += "}";
+        
+        // Also log to serial for debugging
+        Serial.print("Broadcasting: ");
+        Serial.println(jsonString);
+        
         ws->textAll(jsonString);
     }
 }
