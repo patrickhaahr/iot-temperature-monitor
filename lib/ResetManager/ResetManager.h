@@ -2,6 +2,7 @@
 #define RESET_MANAGER_H
 
 #include <functional>
+#include <ezButton.h>
 
 /**
  * @brief Manages the hardware reset button functionality
@@ -15,6 +16,7 @@ public:
      * @brief Construct a new Reset Manager object
      * 
      * @param buttonPin GPIO pin number where the reset button is connected
+     * @param redLedPin GPIO pin number for the red LED indicator
      * @param holdTime Time in milliseconds the button needs to be held for reset (default 10000ms)
      */
     ResetManager(uint8_t buttonPin, unsigned long holdTime = 10000);
@@ -43,6 +45,7 @@ public:
     void setResetCallback(std::function<void(void)> callback);
 
 private:
+    ezButton* button;
     uint8_t pin;
     unsigned long holdTime;
     unsigned long pressStartTime;

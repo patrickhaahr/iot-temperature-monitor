@@ -6,7 +6,9 @@
 
 // Pin Definitions
 #define TEMPERATURE_SENSOR 19    // DS18B20 data pin
-#define RESET_BUTTON      13    // Changed to GPIO13 which is less likely to have conflicts
+#define RESET_BUTTON       4     // Reset button pin
+#define RED_LED           5     // Red LED pin
+#define BLUE_LED          18    // Blue LED pin
 
 // Global objects
 SensorManager* sensorManager;
@@ -18,9 +20,26 @@ ResetManager* resetManager;
 unsigned long lastTempUpdate = 0;
 const unsigned long TEMP_UPDATE_INTERVAL = 5000; // 5 seconds
 
+// LED blinking variables
+bool isBlinking = false;
+unsigned long lastBlinkTime = 0;
+const unsigned long BLINK_INTERVAL = 500; // 500ms blink interval
+
 void handleReset() {
     Serial.println("Reset triggered - deleting WiFi configuration");
+    digitalWrite(RED_LED, LOW);  // Turn off red LED
+    
     if (wifiManager->deleteCredentials()) {
+        // Start blinking blue LED
+        isBlinking = true;
+        Serial.println("WiFi configuration deleted. Restarting device...");
+        // Blink blue LED a few times before restart
+        for(int i = 0; i < 6; i++) {
+            digitalWrite(BLUE_LED, HIGH);
+            delay(250);
+            digitalWrite(BLUE_LED, LOW);
+            delay(250);
+        }
         ESP.restart();
     }
 }
@@ -35,6 +54,12 @@ void handleWiFiCredentials(const char* ssid, const char* password) {
 void setup() {
     Serial.begin(115200);
     Serial.println("Starting IoT Temperature Monitor...");
+
+    // Initialize LED pins
+    pinMode(RED_LED, OUTPUT);
+    pinMode(BLUE_LED, OUTPUT);
+    digitalWrite(RED_LED, LOW);
+    digitalWrite(BLUE_LED, LOW);
 
     // Initialize managers
     sensorManager = new SensorManager(TEMPERATURE_SENSOR);
