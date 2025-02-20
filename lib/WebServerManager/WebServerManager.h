@@ -4,6 +4,7 @@
 #include <ESPAsyncWebServer.h>
 #include <SPIFFS.h>
 #include <functional>
+#include <ArduinoJson.h>
 
 /**
  * @brief Manages the web server and WebSocket functionality
@@ -36,6 +37,20 @@ public:
     void setWiFiCredentialsCallback(std::function<void(const char*, const char*)> callback);
 
     /**
+     * @brief Set the callback function for system reset
+     * 
+     * @param callback Function to handle system reset
+     */
+    void setSystemResetCallback(std::function<void(void)> callback);
+
+    /**
+     * @brief Set the callback function for system settings update
+     * 
+     * @param callback Function to handle system settings update
+     */
+    void setSystemSettingsCallback(std::function<void(int, int, int)> callback);
+
+    /**
      * @brief Broadcast temperature data to all connected WebSocket clients
      * 
      * @param temperature Current temperature reading
@@ -55,6 +70,8 @@ private:
     uint16_t port;
     bool isInAPMode;
     std::function<void(const char*, const char*)> wifiCredentialsCallback;
+    std::function<void(void)> systemResetCallback;
+    std::function<void(int, int, int)> systemSettingsCallback;
 
     void setupRoutes();
     void handleWebSocketMessage(AsyncWebSocket* server, AsyncWebSocketClient* client, 

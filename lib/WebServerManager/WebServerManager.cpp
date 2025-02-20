@@ -93,10 +93,80 @@ void WebServerManager::setupRoutes() {
         serializeJson(doc, response);
         request->send(200, "application/json", response);
     });
+
+    // Export temperature data
+    server->on("/api/data/export", HTTP_GET, [](AsyncWebServerRequest *request) {
+        if (!SPIFFS.exists("/temperature_log.json")) {
+            request->send(404, "application/json", "{\"status\":\"error\",\"message\":\"No data found\"}");
+            return;
+        }
+        request->send(SPIFFS, "/temperature_log.json", "application/json");
+    });
+
+    // Reset WiFi configuration
+    server->on("/api/system/reset", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        if (systemResetCallback) {
+            systemResetCallback();
+            request->send(200, "application/json", "{\"status\":\"success\",\"message\":\"System will reset\"}");
+        } else {
+            request->send(500, "application/json", "{\"status\":\"error\",\"message\":\"Reset handler not configured\"}");
+        }
+    });
+
+    // Update system settings
+    server->on("/api/system/settings", HTTP_POST, [](AsyncWebServerRequest* request) {
+        request->send(400); // Bad request by default
+    }, NULL, [this](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, data);
+        
+        if (!error && doc.containsKey("loggingInterval") && 
+            doc.containsKey("tempUpdateInterval") && 
+            doc.containsKey("maxLogEntries")) {
+            
+            int loggingInterval = doc["loggingInterval"];
+            int tempUpdateInterval = doc["tempUpdateInterval"];
+            int maxLogEntries = doc["maxLogEntries"];
+            
+            if (systemSettingsCallback) {
+                systemSettingsCallback(loggingInterval, tempUpdateInterval, maxLogEntries);
+                request->send(200, "application/json", "{\"status\":\"success\"}");
+            } else {
+                request->send(500, "application/json", "{\"status\":\"error\",\"message\":\"Settings handler not configured\"}");
+            }
+        } else {
+            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Invalid request\"}");
+        }
+    });
+
+    // Get current system settings
+    server->on("/api/system/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
+        JsonDocument doc;
+        File file = SPIFFS.open("/settings.json", "r");
+        if (!file) {
+            doc["loggingInterval"] = 300; // Default 5 minutes
+            doc["tempUpdateInterval"] = 5; // Default 5 seconds
+            doc["maxLogEntries"] = 1000;  // Default 1000 entries
+        } else {
+            deserializeJson(doc, file);
+            file.close();
+        }
+        String response;
+        serializeJson(doc, response);
+        request->send(200, "application/json", response);
+    });
 }
 
 void WebServerManager::setWiFiCredentialsCallback(std::function<void(const char*, const char*)> callback) {
     wifiCredentialsCallback = callback;
+}
+
+void WebServerManager::setSystemResetCallback(std::function<void(void)> callback) {
+    systemResetCallback = callback;
+}
+
+void WebServerManager::setSystemSettingsCallback(std::function<void(int, int, int)> callback) {
+    systemSettingsCallback = callback;
 }
 
 void WebServerManager::broadcastTemperature(float temperature) {
