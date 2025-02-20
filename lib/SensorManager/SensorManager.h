@@ -48,6 +48,8 @@ private:
     DallasTemperature* sensors;
     uint8_t pin;
     bool isInitialized;
+    float lastTemperature;  // Cache for the last valid temperature reading
+    unsigned long lastReadTime;  // Timestamp of the last temperature reading
 };
 
 #endif // SENSOR_MANAGER_H

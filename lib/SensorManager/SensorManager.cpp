@@ -12,13 +12,17 @@ SensorManager::SensorManager(uint8_t oneWirePin) : pin(oneWirePin), isInitialize
 bool SensorManager::begin() {
     sensors->begin();
     
-    // Wait for first conversion (required for first reading)
+    // Wait for first conversion
     sensors->requestTemperatures();
     delay(750);
     
-    // Check if we can get a valid reading
+    // Initialize cache
     float temp = sensors->getTempCByIndex(0);
     isInitialized = (temp != DEVICE_DISCONNECTED_C);
+    if (isInitialized) {
+        lastTemperature = temp;
+        lastReadTime = millis();
+    }
     
     return isInitialized;
 }
@@ -29,14 +33,21 @@ float SensorManager::getTemperature() {
         return DEVICE_DISCONNECTED_C;
     }
     
-    sensors->requestTemperatures();
-    float temp = sensors->getTempCByIndex(0);
-    
-    if (temp == DEVICE_DISCONNECTED_C) {
-        Serial.println("Error: Sensor disconnected!");
+    // Only request new temperature every 1 second
+    unsigned long now = millis();
+    if (now - lastReadTime >= 1000) {
+        sensors->requestTemperatures();
+        float temp = sensors->getTempCByIndex(0);
+        
+        if (temp == DEVICE_DISCONNECTED_C) {
+            Serial.println("Error: Sensor disconnected!");
+        } else {
+            lastTemperature = temp;
+            lastReadTime = now;
+        }
     }
     
-    return temp;
+    return lastTemperature;
 }
 
 bool SensorManager::isSensorWorking() {

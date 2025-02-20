@@ -67,6 +67,7 @@ const tempChart = new Chart(ctx, {
 });
 
 function updateStatistics() {
+    // Reset stats if no data
     if (temperatureHistory.length === 0) {
         document.getElementById('min-temp').textContent = '--.-';
         document.getElementById('max-temp').textContent = '--.-';
@@ -76,14 +77,14 @@ function updateStatistics() {
     }
 
     const temperatures = temperatureHistory.map(item => item.temp);
-    const minTemp = Math.min(...temperatures);
-    const maxTemp = Math.max(...temperatures);
-    const avgTemp = temperatures.reduce((a, b) => a + b, 0) / temperatures.length;
+    const min = Math.min(...temperatures);
+    const max = Math.max(...temperatures);
+    const avg = temperatures.reduce((a, b) => a + b) / temperatures.length;
 
-    document.getElementById('min-temp').textContent = minTemp.toFixed(1);
-    document.getElementById('max-temp').textContent = maxTemp.toFixed(1);
-    document.getElementById('avg-temp').textContent = avgTemp.toFixed(1);
-    document.getElementById('sample-count').textContent = temperatures.length;
+    document.getElementById('min-temp').textContent = min.toFixed(1);
+    document.getElementById('max-temp').textContent = max.toFixed(1);
+    document.getElementById('avg-temp').textContent = avg.toFixed(1);
+    document.getElementById('sample-count').textContent = temperatureHistory.length.toString();
 }
 
 function updateChart() {
@@ -126,6 +127,7 @@ function addTemperatureReading(temperature, timestamp) {
     updateChart();
 }
 
+// Single WebSocket initialization function
 function initWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
@@ -136,11 +138,10 @@ function initWebSocket() {
         console.log('WebSocket connected');
         document.getElementById('connection-status').textContent = 'Connected';
         reconnectAttempts = 0;
-        temperatureHistory = []; // Clear history on new connection
     };
     
     ws.onclose = () => {
-        console.log('WebSocket disconnected');
+        console.log('WebSocket connection closed');
         document.getElementById('connection-status').textContent = 'Disconnected';
         
         if (reconnectAttempts < maxReconnectAttempts) {
@@ -155,26 +156,29 @@ function initWebSocket() {
         console.error('WebSocket error:', error);
     };
     
-    ws.onmessage = (event) => {
+    ws.onmessage = async (event) => {
         try {
             const data = JSON.parse(event.data);
-            console.log('WebSocket message received:', data);  // Debug logging
+            console.log('WebSocket message received:', data);
             
-            if (data.temperature !== undefined && data.timestamp !== undefined) {
-                addTemperatureReading(data.temperature, data.timestamp);
-            } else {
-                console.warn('Received invalid message format:', data);
+            if (data.update && data.temperature !== undefined && data.timestamp !== undefined) {
+                // Update display immediately
+                document.getElementById('temperature').textContent = 
+                    parseFloat(data.temperature).toFixed(1);
+                document.getElementById('last-update').textContent = 
+                    `Last update: ${data.timestamp}`;
+                
+                // Small delay to ensure the JSON file is updated
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Update from JSON file
+                await updateFromJSON();
             }
-        } catch (e) {
-            console.error('Error parsing WebSocket message:', e);
+        } catch (error) {
+            console.error('Error processing WebSocket message:', error);
         }
     };
 }
-
-// Initialize WebSocket connection when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    initWebSocket();
-});
 
 // Handle WiFi configuration form
 document.getElementById('wifi-form')?.addEventListener('submit', async (e) => {
@@ -204,18 +208,10 @@ document.getElementById('wifi-form')?.addEventListener('submit', async (e) => {
     }
 });
 
-// Check if in AP mode
-if (window.location.hostname.includes('ESP32_Config')) {
-    document.getElementById('wifi-config').classList.remove('hidden');
-    document.getElementById('temperature-display').classList.add('hidden');
-} else {
-    // Initialize WebSocket connection
-    initWebSocket();
-}
-
-// Load historical data when page loads
-async function loadHistoricalData() {
+// Initialize monitoring with latest temperature
+async function initializeMonitoring() {
     try {
+        // Load historical data first
         const response = await fetch('/api/temperature/history');
         if (!response.ok) {
             throw new Error('Failed to load historical data');
@@ -227,11 +223,11 @@ async function loadHistoricalData() {
             temperatureHistory = data.readings
                 .slice(-maxDataPoints)
                 .map(reading => ({
-                    timestamp: reading.timestamp,  // Keep the original timestamp string
+                    timestamp: reading.timestamp,
                     temp: parseFloat(reading.temperature)
                 }));
             
-            // Update the display with historical data
+            // Update displays with the latest reading immediately
             if (temperatureHistory.length > 0) {
                 const latest = temperatureHistory[temperatureHistory.length - 1];
                 updateDisplays(latest.temp, latest.timestamp);
@@ -244,13 +240,19 @@ async function loadHistoricalData() {
     } catch (error) {
         console.warn('Could not load historical data:', error);
     }
+    
+    // Initialize WebSocket after loading initial data
+    initWebSocket();
 }
 
-// Initialize WebSocket connection and load historical data
-function initializeMonitoring() {
-    loadHistoricalData().then(() => {
-        setupWebSocket();
-    });
+// Remove setupWebSocket function and only use initWebSocket
+// Check if in AP mode and initialize accordingly
+if (window.location.hostname.includes('ESP32_Config')) {
+    document.getElementById('wifi-config').classList.remove('hidden');
+    document.getElementById('temperature-display').classList.add('hidden');
+} else {
+    // Initialize monitoring when page loads
+    document.addEventListener('DOMContentLoaded', initializeMonitoring);
 }
 
 // Update WebSocket message handler
@@ -267,10 +269,7 @@ function handleWebSocketMessage(event) {
     }
 }
 
-// Call initialize when page loads
-document.addEventListener('DOMContentLoaded', initializeMonitoring);
-
-// Function to fetch and update data from JSON file
+// Update from JSON without adding duplicate entries
 async function updateFromJSON() {
     try {
         const response = await fetch('/api/temperature/history');
@@ -281,64 +280,21 @@ async function updateFromJSON() {
         const data = await response.json();
         if (data.readings && Array.isArray(data.readings)) {
             // Get the most recent readings up to maxDataPoints
-            temperatureHistory = data.readings
+            const newHistory = data.readings
                 .slice(-maxDataPoints)
                 .map(reading => ({
                     timestamp: reading.timestamp,
                     temp: parseFloat(reading.temperature)
                 }));
             
-            // Update displays with latest reading
-            if (temperatureHistory.length > 0) {
-                const latest = temperatureHistory[temperatureHistory.length - 1];
-                document.getElementById('temperature').textContent = latest.temp.toFixed(1);
-                document.getElementById('last-update').textContent = `Last update: ${latest.timestamp}`;
+            // Only update if the data has actually changed
+            if (JSON.stringify(newHistory) !== JSON.stringify(temperatureHistory)) {
+                temperatureHistory = newHistory;
+                updateStatistics();
+                updateChart();
             }
-            
-            updateStatistics();
-            updateChart();
         }
     } catch (error) {
         console.warn('Could not load temperature data:', error);
     }
 }
-
-// WebSocket setup with immediate updates
-function setupWebSocket() {
-    const ws = new WebSocket(`ws://${window.location.host}/ws`);
-    
-    ws.onmessage = async (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            if (data.update && data.temperature !== undefined && data.timestamp !== undefined) {
-                // Immediately update display with new reading
-                document.getElementById('temperature').textContent = 
-                    parseFloat(data.temperature).toFixed(1);
-                document.getElementById('last-update').textContent = 
-                    `Last update: ${data.timestamp}`;
-                
-                // Fetch complete history for chart and stats
-                await updateFromJSON();
-            }
-        } catch (error) {
-            console.error('Error processing WebSocket message:', error);
-        }
-    };
-
-    ws.onclose = () => {
-        console.log('WebSocket connection closed. Reconnecting...');
-        setTimeout(setupWebSocket, 2000);
-    };
-
-    ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-    };
-}
-
-// Initialize monitoring
-async function initializeMonitoring() {
-    await updateFromJSON();  // Load initial data
-    setupWebSocket();        // Set up WebSocket for update notifications
-}
-
-document.addEventListener('DOMContentLoaded', initializeMonitoring);

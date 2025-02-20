@@ -3,24 +3,8 @@
 #include "SensorManager.h"
 #include <ArduinoJson.h>
 
-AsyncWebServer server(80);
-AsyncWebSocket ws("/ws");
-
-void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type,
-               void * arg, uint8_t *data, size_t len) {
-  if (type == WS_EVT_CONNECT) {
-    Serial.println("WebSocket client connected");
-  } else if (type == WS_EVT_DISCONNECT) {
-    Serial.println("WebSocket client disconnected");
-  }
-}
-
-void setupWebServer() {
-  ws.onEvent(onWsEvent);
-  server.addHandler(&ws);
-  server.begin();
-  Serial.println("Web server started.");
-}
+// AsyncWebServer server(80);
+// AsyncWebSocket ws("/ws");
 
 WebServerManager::WebServerManager(uint16_t port) : port(port), isInAPMode(false) {
     server = new AsyncWebServer(port);
@@ -32,7 +16,7 @@ bool WebServerManager::begin() {
         return false;
     }
 
-    // Attach WebSocket handler
+    // Attach WebSocket handler only once
     ws->onEvent([this](AsyncWebSocket* server, AsyncWebSocketClient* client,
                       AwsEventType type, void* arg, uint8_t* data, size_t len) {
         onWebSocketEvent(server, client, type, arg, data, len);
