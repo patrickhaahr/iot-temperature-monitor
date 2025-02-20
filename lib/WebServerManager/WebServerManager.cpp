@@ -155,6 +155,15 @@ void WebServerManager::setupRoutes() {
         serializeJson(doc, response);
         request->send(200, "application/json", response);
     });
+
+    server->on("/api/temperature/history", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        if (!SPIFFS.exists("/temperature_log.json")) {
+            request->send(404, "application/json", "{\"error\":\"No history found\"}");
+            return;
+        }
+        
+        request->send(SPIFFS, "/temperature_log.json", "application/json");
+    });
 }
 
 void WebServerManager::setWiFiCredentialsCallback(std::function<void(const char*, const char*)> callback) {
@@ -172,14 +181,20 @@ void WebServerManager::setSystemSettingsCallback(std::function<void(int, int, in
 void WebServerManager::broadcastTemperature(float temperature) {
     if (ws->count() > 0) {
         time_t now;
-        time(&now);  // Get current timestamp
+        time(&now);
         
-        // JSON with temperature and timestamp
-        String jsonString = "{\"temperature\":";
-        jsonString += String(temperature, 1);  // 1 decimal place
-        jsonString += ",\"timestamp\":";
-        jsonString += String(now);
-        jsonString += "}";
+        // Format time string to match JSON log format
+        struct tm timeinfo;
+        localtime_r(&now, &timeinfo);
+        char timeStr[20];
+        strftime(timeStr, sizeof(timeStr), "%H:%M:%S", &timeinfo);
+        
+        // Send both the new reading and update trigger
+        String jsonString = "{\"update\":true,\"temperature\":";
+        jsonString += String(temperature, 4);  // More precision
+        jsonString += ",\"timestamp\":\"";
+        jsonString += timeStr;
+        jsonString += "\"}";
         
         ws->textAll(jsonString);
     }
@@ -189,7 +204,6 @@ void WebServerManager::handleWebSocketMessage(AsyncWebSocket* server, AsyncWebSo
                                             AwsFrameInfo* info, uint8_t* data, size_t len) {
     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
         data[len] = 0;
-        // Handle WebSocket messages if needed
     }
 }
 

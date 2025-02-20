@@ -1,6 +1,6 @@
-bblanchon/ArduinoJson@^7.3.0
 paulstoffregen/OneWire@^2.3.8
-esp32async/AsyncTCP@^3.3.5
 esp32async/ESPAsyncWebServer@^3.7.0
-ezButton
 milesburton/DallasTemperature@^4.0.4
+ezButton
+bblanchon/ArduinoJson@^7.3.0
+esp32async/AsyncTCP@^3.3.5

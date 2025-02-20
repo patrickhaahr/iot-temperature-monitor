@@ -26,7 +26,7 @@ const tempChart = new Chart(ctx, {
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: false,  // Disable animations for better performance
+        animation: false, 
         scales: {
             y: {
                 beginAtZero: false,
@@ -88,7 +88,7 @@ function updateStatistics() {
 
 function updateChart() {
     const chartData = temperatureHistory.map(item => ({
-        x: item.timestamp,  // This should be a Date object
+        x: new Date(new Date().toDateString() + ' ' + item.timestamp),
         y: item.temp
     }));
 
@@ -99,37 +99,29 @@ function updateChart() {
     console.log('Chart data updated:', chartData);
 }
 
+function updateDisplays(temperature, timestamp) {
+    document.getElementById('temperature').textContent = temperature.toFixed(1);
+    document.getElementById('last-update').textContent = `Last update: ${timestamp}`;
+}
+
 function addTemperatureReading(temperature, timestamp) {
-    // Validate the temperature reading
     if (isNaN(temperature) || temperature === null) {
         console.error('Invalid temperature reading:', temperature);
         return;
     }
 
-    // Create a new Date object from the timestamp
-    const date = new Date(timestamp * 1000); // Convert Unix timestamp to milliseconds
-    
     const reading = {
-        timestamp: date,  // Store as Date object
+        timestamp: timestamp,  // Use the timestamp string directly
         temp: parseFloat(temperature)
     };
 
+    // Add to history while maintaining maxDataPoints limit
     temperatureHistory.push(reading);
-
-    // Keep only the last maxDataPoints readings
     if (temperatureHistory.length > maxDataPoints) {
         temperatureHistory.shift();
     }
 
-    // Update the current temperature display
-    document.getElementById('temperature').textContent = reading.temp.toFixed(1);
-    document.getElementById('last-update').textContent = 
-        `Last update: ${date.toLocaleTimeString()}`;
-    
-    // Debug logging
-    console.log('New reading added:', reading);
-    console.log('History length:', temperatureHistory.length);
-    
+    updateDisplays(reading.temp, reading.timestamp);
     updateStatistics();
     updateChart();
 }
@@ -220,3 +212,133 @@ if (window.location.hostname.includes('ESP32_Config')) {
     // Initialize WebSocket connection
     initWebSocket();
 }
+
+// Load historical data when page loads
+async function loadHistoricalData() {
+    try {
+        const response = await fetch('/api/temperature/history');
+        if (!response.ok) {
+            throw new Error('Failed to load historical data');
+        }
+        
+        const data = await response.json();
+        if (data.readings && Array.isArray(data.readings)) {
+            // Convert the last maxDataPoints readings into our format
+            temperatureHistory = data.readings
+                .slice(-maxDataPoints)
+                .map(reading => ({
+                    timestamp: reading.timestamp,  // Keep the original timestamp string
+                    temp: parseFloat(reading.temperature)
+                }));
+            
+            // Update the display with historical data
+            if (temperatureHistory.length > 0) {
+                const latest = temperatureHistory[temperatureHistory.length - 1];
+                updateDisplays(latest.temp, latest.timestamp);
+            }
+            
+            // Update statistics and chart
+            updateStatistics();
+            updateChart();
+        }
+    } catch (error) {
+        console.warn('Could not load historical data:', error);
+    }
+}
+
+// Initialize WebSocket connection and load historical data
+function initializeMonitoring() {
+    loadHistoricalData().then(() => {
+        setupWebSocket();
+    });
+}
+
+// Update WebSocket message handler
+function handleWebSocketMessage(event) {
+    try {
+        const data = JSON.parse(event.data);
+        if (data.temperature !== undefined && data.timestamp !== undefined) {
+            addTemperatureReading(data.temperature, data.timestamp);
+        } else {
+            console.warn('Invalid WebSocket message format:', data);
+        }
+    } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+    }
+}
+
+// Call initialize when page loads
+document.addEventListener('DOMContentLoaded', initializeMonitoring);
+
+// Function to fetch and update data from JSON file
+async function updateFromJSON() {
+    try {
+        const response = await fetch('/api/temperature/history');
+        if (!response.ok) {
+            throw new Error('Failed to load temperature data');
+        }
+        
+        const data = await response.json();
+        if (data.readings && Array.isArray(data.readings)) {
+            // Get the most recent readings up to maxDataPoints
+            temperatureHistory = data.readings
+                .slice(-maxDataPoints)
+                .map(reading => ({
+                    timestamp: reading.timestamp,
+                    temp: parseFloat(reading.temperature)
+                }));
+            
+            // Update displays with latest reading
+            if (temperatureHistory.length > 0) {
+                const latest = temperatureHistory[temperatureHistory.length - 1];
+                document.getElementById('temperature').textContent = latest.temp.toFixed(1);
+                document.getElementById('last-update').textContent = `Last update: ${latest.timestamp}`;
+            }
+            
+            updateStatistics();
+            updateChart();
+        }
+    } catch (error) {
+        console.warn('Could not load temperature data:', error);
+    }
+}
+
+// WebSocket setup with immediate updates
+function setupWebSocket() {
+    const ws = new WebSocket(`ws://${window.location.host}/ws`);
+    
+    ws.onmessage = async (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.update && data.temperature !== undefined && data.timestamp !== undefined) {
+                // Immediately update display with new reading
+                document.getElementById('temperature').textContent = 
+                    parseFloat(data.temperature).toFixed(1);
+                document.getElementById('last-update').textContent = 
+                    `Last update: ${data.timestamp}`;
+                
+                // Fetch complete history for chart and stats
+                await updateFromJSON();
+            }
+        } catch (error) {
+            console.error('Error processing WebSocket message:', error);
+        }
+    };
+
+    ws.onclose = () => {
+        console.log('WebSocket connection closed. Reconnecting...');
+        setTimeout(setupWebSocket, 2000);
+    };
+
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+}
+
+// Initialize monitoring
+async function initializeMonitoring() {
+    await updateFromJSON();  // Load initial data
+    setupWebSocket();        // Set up WebSocket for update notifications
+}
+
+document.addEventListener('DOMContentLoaded', initializeMonitoring);
