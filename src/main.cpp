@@ -275,28 +275,30 @@ void loop() {
             strftime(timeStr, sizeof(timeStr), "%H:%M:%S", &timeinfo);
             
             // Log temperature with timestamp
-            Serial.printf("[%s] Temperature: %.1f°C\n", timeStr, temperature);
-            
-            // Only try to log if SPIFFS is initialized
-            if (spiffsInitialized && dataLogger) {
-                // Check if it's time to log the temperature
-                if (dataLogger->shouldLog()) {
-                    if (dataLogger->logTemperature(temperature)) {
-                        Serial.println("Temperature logged successfully");
-                    } else {
-                        Serial.println("Failed to log temperature");
-                        // Try to reinitialize SPIFFS if logging fails
-                        if (initializeSPIFFS()) {
-                            // Retry logging after reinitialization
-                            if (dataLogger->logTemperature(temperature)) {
-                                Serial.println("Temperature logged successfully after SPIFFS reinitialization");
+            if (wifiManager->isConnected()) {
+                Serial.printf("WiFi Mode - Time: %s, Temperature: %.1f°C (logged)\n", timeStr, temperature);
+                
+                // Only try to log if SPIFFS is initialized and we're in WiFi mode
+                if (spiffsInitialized && dataLogger) {
+                    // Check if it's time to log the temperature
+                    if (dataLogger->shouldLog()) {
+                        time_t now = time(nullptr);
+                        // Only log if we have valid NTP time (timestamp > Jan 1, 2024)
+                        if (now > 1704067200) {  // Unix timestamp for Jan 1, 2024
+                            if (!dataLogger->logTemperature(temperature)) {
+                                // Try to reinitialize SPIFFS if logging fails
+                                if (initializeSPIFFS()) {
+                                    dataLogger->logTemperature(temperature);
+                                }
                             }
                         }
                     }
                 }
+            } else {
+                Serial.printf("AP Mode - Temperature: %.1f°C (no logs)\n", temperature);
             }
             
-            // Broadcast to WebSocket clients
+            // Broadcast to WebSocket clients without serial output
             webServerManager->broadcastTemperature(temperature);
         } else {
             Serial.println("Error reading temperature sensor!");

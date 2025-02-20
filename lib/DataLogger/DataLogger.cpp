@@ -127,7 +127,6 @@ bool DataLogger::appendToLog(float temperature, time_t timestamp) {
     }
 
     file.close();
-    Serial.println("Temperature logged successfully");
     return true;
 }
 

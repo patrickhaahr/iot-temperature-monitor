@@ -181,10 +181,6 @@ void WebServerManager::broadcastTemperature(float temperature) {
         jsonString += String(now);
         jsonString += "}";
         
-        // Also log to serial for debugging
-        Serial.print("Broadcasting: ");
-        Serial.println(jsonString);
-        
         ws->textAll(jsonString);
     }
 }
