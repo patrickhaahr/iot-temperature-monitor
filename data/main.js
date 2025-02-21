@@ -6,6 +6,7 @@ const reconnectDelay = 5000;
 // Temperature history management
 const maxDataPoints = 50;  // Maximum number of points to show on the graph
 let temperatureHistory = [];
+let totalSamples = 0;  // Add this after temperatureHistory declaration
 
 // Initialize the chart with proper configuration
 const ctx = document.getElementById('tempChart').getContext('2d');
@@ -84,7 +85,7 @@ function updateStatistics() {
     document.getElementById('min-temp').textContent = min.toFixed(1);
     document.getElementById('max-temp').textContent = max.toFixed(1);
     document.getElementById('avg-temp').textContent = avg.toFixed(1);
-    document.getElementById('sample-count').textContent = temperatureHistory.length.toString();
+    document.getElementById('sample-count').textContent = totalSamples.toString();
 }
 
 function updateChart() {
@@ -118,6 +119,7 @@ function addTemperatureReading(temperature, timestamp) {
 
     // Add to history while maintaining maxDataPoints limit
     temperatureHistory.push(reading);
+    totalSamples++; // Increment total samples counter
     if (temperatureHistory.length > maxDataPoints) {
         temperatureHistory.shift();
     }
@@ -219,6 +221,9 @@ async function initializeMonitoring() {
         
         const data = await response.json();
         if (data.readings && Array.isArray(data.readings)) {
+            // Set total samples to the total number of readings in history
+            totalSamples = data.readings.length;
+            
             // Convert the last maxDataPoints readings into our format
             temperatureHistory = data.readings
                 .slice(-maxDataPoints)
@@ -279,6 +284,9 @@ async function updateFromJSON() {
         
         const data = await response.json();
         if (data.readings && Array.isArray(data.readings)) {
+            // Update total samples count
+            totalSamples = data.readings.length;
+            
             // Get the most recent readings up to maxDataPoints
             const newHistory = data.readings
                 .slice(-maxDataPoints)
