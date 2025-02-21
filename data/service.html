@@ -22,15 +22,21 @@
                 <form id="settingsForm" class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Temperature Update Interval (seconds)</label>
-                        <input type="number" name="tempUpdateInterval" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input type="number" name="tempUpdateInterval" placeholder="5" min="1" max="60"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <p class="mt-1 text-sm text-gray-500">How often the temperature display updates. Lower values (1-5s) give more frequent updates but use more power. Default: 5s</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Logging Interval (seconds)</label>
-                        <input type="number" name="loggingInterval" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input type="number" name="loggingInterval" placeholder="300" min="5" max="3600"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <p class="mt-1 text-sm text-gray-500">How often readings are saved to storage. Higher values (300-3600s) save storage space. Default: 300s (5 min)</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Maximum Log Entries</label>
-                        <input type="number" name="maxLogEntries" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input type="number" name="maxLogEntries" placeholder="1000" min="100" max="10000"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <p class="mt-1 text-sm text-gray-500">Maximum number of readings to keep in storage. Higher values keep longer history but use more storage. Default: 1000</p>
                     </div>
                     <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                         Save Settings
@@ -89,22 +95,40 @@
                 maxLogEntries: parseInt(document.querySelector('[name="maxLogEntries"]').value)
             };
 
+            // Validate settings
+            if (settings.tempUpdateInterval < 1 || settings.tempUpdateInterval > 60) {
+                showStatus('Temperature update interval must be between 1-60 seconds', 'error');
+                return;
+            }
+            if (settings.loggingInterval < 5 || settings.loggingInterval > 3600) {
+                showStatus('Logging interval must be between 5-3600 seconds', 'error');
+                return;
+            }
+            if (settings.maxLogEntries < 100 || settings.maxLogEntries > 10000) {
+                showStatus('Max log entries must be between 100-10000', 'error');
+                return;
+            }
+
             try {
                 const response = await fetch('/api/system/settings', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify(settings)
                 });
 
+                const result = await response.json();
+                
                 if (response.ok) {
                     showStatus('Settings saved successfully');
                 } else {
-                    showStatus('Failed to save settings', 'error');
+                    showStatus(result.message || 'Failed to save settings', 'error');
                 }
             } catch (error) {
-                showStatus('Failed to save settings', 'error');
+                console.error('Error saving settings:', error);
+                showStatus('Failed to save settings: Network error', 'error');
             }
         });
 

@@ -198,6 +198,11 @@ void setup() {
     sensorManager = new SensorManager(TEMPERATURE_SENSOR);
     wifiManager = new WifiManager();
     webServerManager = new WebServerManager();
+    
+    // Set up callbacks immediately after creating webServerManager
+    webServerManager->setSystemSettingsCallback(handleSystemSettings);
+    
+    // Then continue with initialization
     resetManager = new ResetManager(RESET_BUTTON);
     
     if (spiffsInitialized) {
@@ -228,7 +233,6 @@ void setup() {
     // Set up callbacks
     webServerManager->setWiFiCredentialsCallback(handleWiFiCredentials);
     webServerManager->setSystemResetCallback(handleReset);
-    webServerManager->setSystemSettingsCallback(handleSystemSettings);
     resetManager->setResetCallback(handleReset);
 
     // Set AP mode state based on WiFi connection

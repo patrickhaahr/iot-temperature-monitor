@@ -98,19 +98,47 @@ void WebServerManager::setupRoutes() {
     });
 
     // Update system settings
-    server->on("/api/system/settings", HTTP_POST, [](AsyncWebServerRequest* request) {
-        request->send(400); // Bad request by default
-    }, NULL, [this](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
-        JsonDocument doc;
-        DeserializationError error = deserializeJson(doc, data);
-        
-        if (!error && doc.containsKey("loggingInterval") && 
-            doc.containsKey("tempUpdateInterval") && 
-            doc.containsKey("maxLogEntries")) {
+    server->on("/api/system/settings", HTTP_POST, 
+        [](AsyncWebServerRequest* request) {}, // Handler for the request
+        [](AsyncWebServerRequest* request, String filename, size_t index, uint8_t *data, size_t len, bool final) {}, // Handler for file upload (not used)
+        [this](AsyncWebServerRequest* request, uint8_t *data, size_t len, size_t index, size_t total) {
+            if(!request->hasHeader("Content-Type") || 
+               request->getHeader("Content-Type")->value() != "application/json") {
+                request->send(415, "application/json", "{\"status\":\"error\",\"message\":\"Content-Type must be application/json\"}");
+                return;
+            }
+
+            if(len == 0) {
+                request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Empty request body\"}");
+                return;
+            }
+
+            JsonDocument doc;
+            DeserializationError error = deserializeJson(doc, data, len);
+            
+            if (error) {
+                request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Invalid JSON\"}");
+                return;
+            }
+
+            if (!doc.containsKey("loggingInterval") || 
+                !doc.containsKey("tempUpdateInterval") || 
+                !doc.containsKey("maxLogEntries")) {
+                request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Missing required fields\"}");
+                return;
+            }
             
             int loggingInterval = doc["loggingInterval"];
             int tempUpdateInterval = doc["tempUpdateInterval"];
             int maxLogEntries = doc["maxLogEntries"];
+            
+            // Validate ranges
+            if (tempUpdateInterval < 1 || tempUpdateInterval > 60 ||
+                loggingInterval < 5 || loggingInterval > 3600 ||
+                maxLogEntries < 100 || maxLogEntries > 10000) {
+                request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Values out of valid range\"}");
+                return;
+            }
             
             if (systemSettingsCallback) {
                 systemSettingsCallback(loggingInterval, tempUpdateInterval, maxLogEntries);
@@ -118,10 +146,8 @@ void WebServerManager::setupRoutes() {
             } else {
                 request->send(500, "application/json", "{\"status\":\"error\",\"message\":\"Settings handler not configured\"}");
             }
-        } else {
-            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Invalid request\"}");
         }
-    });
+    );
 
     // Get current system settings
     server->on("/api/system/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
