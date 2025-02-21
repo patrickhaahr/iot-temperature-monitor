@@ -1,0 +1,59 @@
+<!-- Overlay for closing sidebar when clicking outside -->
+<div id="sidebarOverlay" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden transition-opacity duration-300 ease-in-out z-40"></div>
+
+<!-- Service Menu Sidebar -->
+<div id="serviceModal" class="fixed inset-y-0 right-0 bg-white shadow-lg overflow-y-auto z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 translate-x-full w-full sm:w-96">
+    <div class="p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">Service Menu</h2>
+            <button id="closeServiceMenu" class="text-gray-600 hover:text-gray-800">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="space-y-6">
+            <!-- System Settings -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">System Settings</h2>
+                <form id="settingsForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Temperature Update Interval (seconds)</label>
+                        <input type="number" name="tempUpdateInterval" placeholder="5" min="1" max="60"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <p class="mt-1 text-sm text-gray-500">How often the temperature display updates. Lower values (1-5s) give more frequent updates but use more power. Default: 5s</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Logging Interval (seconds)</label>
+                        <input type="number" name="loggingInterval" placeholder="300" min="5" max="3600"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <p class="mt-1 text-sm text-gray-500">How often readings are saved to storage. Higher values (300-3600s) save storage space. Default: 300s (5 min)</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Maximum Log Entries</label>
+                        <input type="number" name="maxLogEntries" placeholder="1000" min="100" max="10000"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <p class="mt-1 text-sm text-gray-500">Maximum number of readings to keep in storage. Higher values keep longer history but use more storage. Default: 1000</p>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Save Settings
+                    </button>
+                </form>
+            </div>
+
+            <!-- Data Management -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Data Management</h2>
+                <div class="space-y-4">
+                    <button id="exportData" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        Export Temperature Data
+                    </button>
+                    <button id="resetWifi" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        Reset WiFi Configuration
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

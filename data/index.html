@@ -9,70 +9,112 @@
     <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <nav class="mb-8">
-            <div class="flex justify-between items-center">
-                <h1 class="text-2xl font-bold text-gray-800">Temperature Monitor</h1>
-                <a href="/service.html" class="text-blue-600 hover:text-blue-800">Service Menu</a>
-            </div>
-        </nav>
+<body class="bg-gray-100">
+    <div class="flex min-h-screen">
+        <!-- Main Content -->
+        <div class="flex-1 lg:mr-96">
+            <div class="container mx-auto px-4 py-8">
+                <nav class="mb-8">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-2xl font-bold text-gray-800">Temperature Monitor</h1>
+                        <button id="openServiceMenu" class="text-blue-600 hover:text-blue-800">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </nav>
 
-        <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
-            <div class="p-6">
-                <h1 class="text-2xl font-bold text-gray-800 mb-4">Temperature Monitor</h1>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Current Temperature Display -->
-                    <div id="temperature-display" class="bg-blue-50 rounded-lg p-6">
-                        <div class="text-center">
-                            <div class="text-6xl font-bold text-blue-600 mb-2">
-                                <span id="temperature">--.-</span>°C
+                <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+                    <div class="p-6">
+                        <h1 class="text-2xl font-bold text-gray-800 mb-4">Temperature Monitor</h1>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Current Temperature Display -->
+                            <div id="temperature-display" class="bg-blue-50 rounded-lg p-6">
+                                <div class="text-center">
+                                    <div class="text-6xl font-bold text-blue-600 mb-2">
+                                        <span id="temperature">--.-</span>°C
+                                    </div>
+                                    <div class="text-sm text-gray-500" id="connection-status">
+                                        Connecting...
+                                    </div>
+                                    <div class="text-sm text-gray-500 mt-2" id="last-update">
+                                        Last update: --:--:--
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-sm text-gray-500" id="connection-status">
-                                Connecting...
-                            </div>
-                            <div class="text-sm text-gray-500 mt-2" id="last-update">
-                                Last update: --:--:--
+
+                            <!-- Statistics -->
+                            <div class="bg-gray-50 rounded-lg p-6">
+                                <h2 class="text-lg font-semibold text-gray-700 mb-4">Statistics</h2>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <div class="text-sm text-gray-500">Minimum</div>
+                                        <div class="text-xl font-bold text-gray-800"><span id="min-temp">--.-</span>°C</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-gray-500">Maximum</div>
+                                        <div class="text-xl font-bold text-gray-800"><span id="max-temp">--.-</span>°C</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-gray-500">Average</div>
+                                        <div class="text-xl font-bold text-gray-800"><span id="avg-temp">--.-</span>°C</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-gray-500">Samples</div>
+                                        <div class="text-xl font-bold text-gray-800"><span id="sample-count">0</span></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Statistics -->
-                    <div class="bg-gray-50 rounded-lg p-6">
-                        <h2 class="text-lg font-semibold text-gray-700 mb-4">Statistics</h2>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <div class="text-sm text-gray-500">Minimum</div>
-                                <div class="text-xl font-bold text-gray-800"><span id="min-temp">--.-</span>°C</div>
-                            </div>
-                            <div>
-                                <div class="text-sm text-gray-500">Maximum</div>
-                                <div class="text-xl font-bold text-gray-800"><span id="max-temp">--.-</span>°C</div>
-                            </div>
-                            <div>
-                                <div class="text-sm text-gray-500">Average</div>
-                                <div class="text-xl font-bold text-gray-800"><span id="avg-temp">--.-</span>°C</div>
-                            </div>
-                            <div>
-                                <div class="text-sm text-gray-500">Samples</div>
-                                <div class="text-xl font-bold text-gray-800"><span id="sample-count">0</span></div>
+                        <!-- Temperature Graph -->
+                        <div class="mt-6 bg-white rounded-lg p-4 border">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Temperature History</h2>
+                            <div class="h-64">
+                                <canvas id="tempChart"></canvas>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Temperature Graph -->
-                <div class="mt-6 bg-white rounded-lg p-4 border">
-                    <h2 class="text-lg font-semibold text-gray-700 mb-4">Temperature History</h2>
-                    <div class="h-64">
-                        <canvas id="tempChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Include Templates -->
+        <div id="templates"></div>
     </div>
 
+    <!-- Scripts -->
+    <script src="js/status-message.js"></script>
+    <script src="js/service-menu.js"></script>
     <script src="main.js"></script>
+    <script>
+        // Load templates
+        async function loadTemplates() {
+            try {
+                const [serviceModalResponse, statusMessageResponse] = await Promise.all([
+                    fetch('templates/service-modal.html'),
+                    fetch('templates/status-message.html')
+                ]);
+
+                const [serviceModalHtml, statusMessageHtml] = await Promise.all([
+                    serviceModalResponse.text(),
+                    statusMessageResponse.text()
+                ]);
+
+                const templatesDiv = document.getElementById('templates');
+                templatesDiv.innerHTML = serviceModalHtml + statusMessageHtml;
+
+                // Initialize components after templates are loaded
+                new ServiceMenu();
+            } catch (error) {
+                console.error('Failed to load templates:', error);
+            }
+        }
+
+        // Load templates when the page loads
+        document.addEventListener('DOMContentLoaded', loadTemplates);
+    </script>
 </body>
 </html>
