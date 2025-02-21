@@ -7,87 +7,52 @@ class ServiceMenu {
         this.settingsForm = document.getElementById('settingsForm');
         this.exportButton = document.getElementById('exportData');
         this.resetWifiButton = document.getElementById('resetWifi');
-        this.isLargeScreen = window.innerWidth >= 1024; // lg breakpoint is 1024px
-
-        this.initializeEventListeners();
-        this.loadSettings(); // Load settings immediately
         
-        // Initialize button visibility
+        // Store form input references
+        this.tempUpdateInput = this.settingsForm?.querySelector('[name="tempUpdateInterval"]');
+        this.loggingIntervalInput = this.settingsForm?.querySelector('[name="loggingInterval"]');
+        this.maxLogEntriesInput = this.settingsForm?.querySelector('[name="maxLogEntries"]');
+        
+        this.isLargeScreen = window.innerWidth >= 1024;
+        
+        this.initializeEventListeners();
+        this.loadSettings();
         this.updateButtonVisibility();
     }
 
     initializeEventListeners() {
-        this.openButton.addEventListener('click', () => this.show());
-        this.closeButton.addEventListener('click', () => this.hide());
-        this.settingsForm.addEventListener('submit', (e) => this.handleSettingsSave(e));
-        this.exportButton.addEventListener('click', () => this.handleDataExport());
-        this.resetWifiButton.addEventListener('click', () => this.handleWifiReset());
-
-        // Handle screen size changes
+        // Open/close event listeners
+        this.openButton?.addEventListener('click', () => this.show());
+        this.closeButton?.addEventListener('click', () => this.hide());
+        
+        // Settings form submit handler
+        if (this.settingsForm) {
+            this.settingsForm.addEventListener('submit', (e) => this.handleSettingsSave(e));
+        }
+        
+        // Export and reset handlers
+        this.exportButton?.addEventListener('click', () => this.handleDataExport());
+        this.resetWifiButton?.addEventListener('click', () => this.handleWifiReset());
+        
+        // Screen size change handler
         window.addEventListener('resize', () => {
-            const wasLargeScreen = this.isLargeScreen;
             this.isLargeScreen = window.innerWidth >= 1024;
-            
-            // If switching between large and smaller screens
-            if (wasLargeScreen !== this.isLargeScreen) {
-                if (this.isLargeScreen) {
-                    // Switching to large screen: show sidebar
-                    this.show();
-                } else {
-                    // Switching to smaller screen: hide sidebar
-                    this.hide();
-                }
-            }
+            this.updateButtonVisibility();
         });
-    }
-
-    updateButtonVisibility() {
-        // Show/hide the menu button based on sidebar visibility
-        if (this.sidebar.classList.contains('translate-x-full')) {
-            this.openButton.classList.remove('hidden');
-        } else {
-            this.openButton.classList.add('hidden');
-        }
-
-        // Hide close button on large screens
-        if (this.isLargeScreen) {
-            this.closeButton.classList.add('hidden');
-        } else {
-            this.closeButton.classList.remove('hidden');
-        }
-    }
-
-    show() {
-        this.sidebar.classList.remove('translate-x-full');
-        this.updateButtonVisibility();
-        this.loadSettings();
-    }
-
-    hide() {
-        this.sidebar.classList.add('translate-x-full');
-        this.updateButtonVisibility();
-    }
-
-    async loadSettings() {
-        try {
-            const response = await fetch('/api/system/settings');
-            const settings = await response.json();
-            
-            document.querySelector('[name="tempUpdateInterval"]').value = settings.tempUpdateInterval;
-            document.querySelector('[name="loggingInterval"]').value = settings.loggingInterval;
-            document.querySelector('[name="maxLogEntries"]').value = settings.maxLogEntries;
-        } catch (error) {
-            showStatus('Failed to load settings', 'error');
-        }
     }
 
     async handleSettingsSave(e) {
         e.preventDefault();
         
+        // Re-query the inputs in case they were not available during construction
+        const tempInput = this.settingsForm.querySelector('[name="tempUpdateInterval"]');
+        const loggingInput = this.settingsForm.querySelector('[name="loggingInterval"]');
+        const maxEntriesInput = this.settingsForm.querySelector('[name="maxLogEntries"]');
+        
         const settings = {
-            tempUpdateInterval: parseInt(document.querySelector('[name="tempUpdateInterval"]').value),
-            loggingInterval: parseInt(document.querySelector('[name="loggingInterval"]').value),
-            maxLogEntries: parseInt(document.querySelector('[name="maxLogEntries"]').value)
+            tempUpdateInterval: parseInt(tempInput.value),
+            loggingInterval: parseInt(loggingInput.value),
+            maxLogEntries: parseInt(maxEntriesInput.value)
         };
 
         // Validate settings
@@ -116,6 +81,51 @@ class ServiceMenu {
             console.error('Error saving settings:', error);
             showStatus('Failed to save settings: Network error', 'error');
         }
+    }
+
+    async loadSettings() {
+        try {
+            const response = await fetch('/api/system/settings');
+            const settings = await response.json();
+            
+            // Re-query the inputs in case they were not available during construction
+            const tempInput = this.settingsForm?.querySelector('[name="tempUpdateInterval"]');
+            const loggingInput = this.settingsForm?.querySelector('[name="loggingInterval"]');
+            const maxEntriesInput = this.settingsForm?.querySelector('[name="maxLogEntries"]');
+            
+            if (tempInput) tempInput.value = settings.tempUpdateInterval;
+            if (loggingInput) loggingInput.value = settings.loggingInterval;
+            if (maxEntriesInput) maxEntriesInput.value = settings.maxLogEntries;
+        } catch (error) {
+            showStatus('Failed to load settings', 'error');
+        }
+    }
+
+    updateButtonVisibility() {
+        // Show/hide the menu button based on sidebar visibility
+        if (this.sidebar.classList.contains('translate-x-full')) {
+            this.openButton.classList.remove('hidden');
+        } else {
+            this.openButton.classList.add('hidden');
+        }
+
+        // Hide close button on large screens
+        if (this.isLargeScreen) {
+            this.closeButton.classList.add('hidden');
+        } else {
+            this.closeButton.classList.remove('hidden');
+        }
+    }
+
+    show() {
+        this.sidebar.classList.remove('translate-x-full');
+        this.updateButtonVisibility();
+        this.loadSettings();
+    }
+
+    hide() {
+        this.sidebar.classList.add('translate-x-full');
+        this.updateButtonVisibility();
     }
 
     validateSettings(settings) {
