@@ -6,7 +6,7 @@ The IoT Temperature Monitor project is designed for the ESP32 platform. It reads
 
 ## Circuit Diagram
 
-![Circuit Diagram](./images/circuit_diagram.png)
+![Circuit Diagram](./images/circuit_diagram.PNG)
 
 Component Connections:
 - DS18B20 Temperature Sensor: GPIO 19
