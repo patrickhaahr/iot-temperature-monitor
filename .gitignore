@@ -1,5 +1,6 @@
 .pio
 .vscode
+.cursorrules
 
 # Build outputs
 build/
@@ -30,4 +31,4 @@ data/wifi.json
 
 # IDE specific
 .idea/
-*.iml
+*.iml.cursorrules

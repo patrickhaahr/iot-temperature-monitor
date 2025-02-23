@@ -16,8 +16,8 @@ const int daylightOffset_sec = 3600;  // 1 hour DST
 // Pin Definitions
 #define TEMPERATURE_SENSOR 19    // DS18B20 data pin
 #define RESET_BUTTON       4     // Reset button pin
-#define RED_LED           5     // Red LED pin
-#define BLUE_LED          18    // Blue LED pin
+#define RED_LED            5     // Red LED pin
+#define BLUE_LED           18    // Blue LED pin
 
 // Global objects
 SensorManager* sensorManager;
