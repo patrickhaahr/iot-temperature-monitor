@@ -4,6 +4,8 @@
 
 The IoT Temperature Monitor project is designed for the ESP32 platform. It reads temperature data from a DS18B20 sensor using the OneWire and DallasTemperature libraries and updates this reading periodically. On startup, the device checks for a saved WiFi configuration in SPIFFS (stored in a file such as "wifi.json"). If found, it connects to the specified network; otherwise, the ESP32 switches to Access Point (AP) mode (e.g., "ESP32_Config") to allow you to enter the credentials. 
 
+![Demo Video](./images/demo.gif)
+
 ## Circuit Diagram
 
 ![Circuit Diagram](./images/circuit_diagram.PNG)
